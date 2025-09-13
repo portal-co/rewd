@@ -482,6 +482,11 @@ impl VisitMut for CoreRewrite {
         if let MemberProp::PrivateName(_) = &node.prop {
             return;
         }
+        if let MemberProp::Ident(i) = &node.prop{
+            if !self.cfg.hookable.contains(&i.sym){
+                return;
+            }
+        }
         let camobj = Ident::new_private(Atom::new(format!("{}$camobj", &self.cfg.name)), node.span);
         self.decls.insert(camobj.to_id());
         // let cammem = Ident::new_private(Atom::new(format!("{}$cammem",&self.cfg.name)), node.span);
