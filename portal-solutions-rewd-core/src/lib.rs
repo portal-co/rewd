@@ -553,13 +553,12 @@ impl VisitMut for CoreRewrite<'_> {
         })
     }
     fn visit_mut_prop(&mut self, node: &mut Prop) {
-        *node = match replace(node, Prop::Shorthand(Ident::default())) {
-            Prop::Shorthand(s) => Prop::KeyValue(KeyValueProp {
+        if let Prop::Shorthand(s) = node {
+            *node = Prop::KeyValue(KeyValueProp {
                 key: s.clone().into(),
-                value: s.into(),
-            }),
-            node => node,
-        };
+                value: s.clone().into(),
+            });
+        }
         node.visit_mut_children_with(self);
     }
     fn visit_mut_expr(&mut self, node: &mut Expr) {
