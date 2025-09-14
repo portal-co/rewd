@@ -552,25 +552,17 @@ impl VisitMut for CoreRewrite {
             })),
         })
     }
+    fn visit_mut_prop(&mut self, node: &mut Prop) {
+        *node = match replace(node, Prop::Shorthand(Ident::default())) {
+            Prop::Shorthand(s) => Prop::KeyValue(KeyValueProp {
+                key: s.clone().into(),
+                value: s.into(),
+            }),
+            node => node,
+        };
+        node.visit_mut_children_with(self);
+    }
     fn visit_mut_expr(&mut self, node: &mut Expr) {
-        if let Some(o) = node.as_mut_object() {
-            o.props = o
-                .props
-                .drain(..)
-                .map(|a| match a {
-                    PropOrSpread::Prop(p) => match *p {
-                        Prop::Shorthand(s) => {
-                            PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                key: s.clone().into(),
-                                value: s.into(),
-                            })))
-                        }
-                        p => PropOrSpread::Prop(Box::new(p)),
-                    },
-                    a => a,
-                })
-                .collect()
-        }
         node.visit_mut_children_with(self);
         *node = match take(node) {
             Expr::Bin(BinExpr {
