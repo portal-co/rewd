@@ -398,6 +398,11 @@ pub struct CoreRewrite {
     pub cfg: CommonConfig,
     pub decls: BTreeSet<Id>,
 }
+impl CoreRewrite {
+    pub fn rewrite(&self, sym: &mut Atom) {
+        *sym = Atom::new(format!("{}$user${}", &self.cfg.name, &*sym));
+    }
+}
 impl VisitMut for CoreRewrite {
     fn visit_mut_stmts(&mut self, node: &mut Vec<Stmt>) {
         let old = take(&mut self.decls);
@@ -482,10 +487,12 @@ impl VisitMut for CoreRewrite {
         if let MemberProp::PrivateName(_) = &node.prop {
             return;
         }
-        if let MemberProp::Ident(i) = &node.prop {
+        if let MemberProp::Ident(i) = &mut node.prop {
             if !self.cfg.hookable.contains(&i.sym) {
                 return;
             }
+            self.rewrite(&mut i.sym);
+            return;
         }
         let camobj = Ident::new_private(Atom::new(format!("{}$camobj", &self.cfg.name)), node.span);
         self.decls.insert(camobj.to_id());
@@ -643,7 +650,7 @@ impl VisitMut for CoreRewrite {
     fn visit_mut_ident(&mut self, node: &mut Ident) {
         node.visit_mut_children_with(self);
         if self.cfg.hookable.contains(&node.sym) {
-            node.sym = Atom::new(format!("{}$user${}", &self.cfg.name, &node.sym))
+            self.rewrite(&mut node.sym);
         }
     }
 }
