@@ -1,6 +1,7 @@
 use std::{
     collections::BTreeSet,
     mem::{replace, take},
+    sync::Arc,
 };
 
 use swc_atoms::Atom;
@@ -13,18 +14,18 @@ use swc_ecma_ast::{
     VarDeclarator,
 };
 use swc_ecma_visit::{VisitMut, VisitMutWith};
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Default, Debug)]
+#[derive(Clone)]
 #[non_exhaustive]
-pub struct CommonConfig {
+pub struct CommonConfig<'a> {
     pub name: Atom,
-    pub hookable: BTreeSet<Atom>,
+    pub rename: Arc<dyn Fn(&str) -> Option<Atom> + 'a>,
 }
 
-pub struct FRewrite {
+pub struct FRewrite<'a> {
     pub core: Expr,
-    pub cfg: CommonConfig,
+    pub cfg: CommonConfig<'a>,
 }
-impl FRewrite {
+impl FRewrite<'_> {
     fn func(&mut self, a: Expr, span: Span) -> Expr {
         let s = a.span();
         return Expr::Call(CallExpr {
@@ -262,7 +263,7 @@ impl FRewrite {
         }));
     }
 }
-impl VisitMut for FRewrite {
+impl VisitMut for FRewrite<'_> {
     fn visit_mut_private_name(&mut self, node: &mut PrivateName) {
         node.visit_mut_children_with(self);
         if node
@@ -393,17 +394,19 @@ impl VisitMut for FRewrite {
             .collect();
     }
 }
-pub struct CoreRewrite {
+pub struct CoreRewrite<'a> {
     pub core: Expr,
-    pub cfg: CommonConfig,
+    pub cfg: CommonConfig<'a>,
     pub decls: BTreeSet<Id>,
 }
-impl CoreRewrite {
+impl CoreRewrite<'_> {
     pub fn rewrite(&self, sym: &mut Atom) {
-        *sym = Atom::new(format!("{}$user${}", &self.cfg.name, &*sym));
+        if let Some(r) = (self.cfg.rename)(&**sym) {
+            *sym = r;
+        }
     }
 }
-impl VisitMut for CoreRewrite {
+impl VisitMut for CoreRewrite<'_> {
     fn visit_mut_stmts(&mut self, node: &mut Vec<Stmt>) {
         let old = take(&mut self.decls);
         node.visit_mut_children_with(self);
@@ -488,9 +491,6 @@ impl VisitMut for CoreRewrite {
             return;
         }
         if let MemberProp::Ident(i) = &mut node.prop {
-            if !self.cfg.hookable.contains(&i.sym) {
-                return;
-            }
             self.rewrite(&mut i.sym);
             return;
         }
@@ -641,8 +641,6 @@ impl VisitMut for CoreRewrite {
     }
     fn visit_mut_ident(&mut self, node: &mut Ident) {
         node.visit_mut_children_with(self);
-        if self.cfg.hookable.contains(&node.sym) {
-            self.rewrite(&mut node.sym);
-        }
+        self.rewrite(&mut node.sym);
     }
 }
