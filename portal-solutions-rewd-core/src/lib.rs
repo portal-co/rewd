@@ -643,4 +643,8 @@ impl VisitMut for CoreRewrite<'_> {
         node.visit_mut_children_with(self);
         self.rewrite(&mut node.sym);
     }
+    fn visit_mut_private_name(&mut self, node: &mut PrivateName) {
+        node.visit_mut_children_with(self);
+        self.rewrite(&mut node.name);
+    }
 }
