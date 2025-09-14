@@ -482,8 +482,8 @@ impl VisitMut for CoreRewrite {
         if let MemberProp::PrivateName(_) = &node.prop {
             return;
         }
-        if let MemberProp::Ident(i) = &node.prop{
-            if !self.cfg.hookable.contains(&i.sym){
+        if let MemberProp::Ident(i) = &node.prop {
+            if !self.cfg.hookable.contains(&i.sym) {
                 return;
             }
         }
@@ -587,12 +587,6 @@ impl VisitMut for CoreRewrite {
                             left: cammem.clone().into(),
                             right: left,
                         })),
-                        Box::new(Expr::Assign(AssignExpr {
-                            span,
-                            op: AssignOp::Assign,
-                            left: camobj.clone().into(),
-                            right: right,
-                        })),
                         Box::new(Expr::Bin(BinExpr {
                             span,
                             op: BinaryOp::In,
@@ -612,7 +606,12 @@ impl VisitMut for CoreRewrite {
                                 args: [
                                     ExprOrSpread {
                                         spread: None,
-                                        expr: camobj.clone().into(),
+                                        expr: Box::new(Expr::Assign(AssignExpr {
+                                            span,
+                                            op: AssignOp::Assign,
+                                            left: camobj.clone().into(),
+                                            right: right,
+                                        })),
                                     },
                                     ExprOrSpread {
                                         expr: cammem.into(),
