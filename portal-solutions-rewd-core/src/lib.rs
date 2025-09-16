@@ -490,10 +490,10 @@ impl VisitMut for CoreRewrite<'_> {
         if let MemberProp::PrivateName(_) = &node.prop {
             return;
         }
-        if let MemberProp::Ident(i) = &mut node.prop {
-            self.rewrite(&mut i.sym);
-            return;
-        }
+        // if let MemberProp::Ident(i) = &mut node.prop {
+        //     self.rewrite(&mut i.sym);
+        //     return;
+        // }
         let camobj = Ident::new_private(Atom::new(format!("{}$camobj", &self.cfg.name)), node.span);
         self.decls.insert(camobj.to_id());
         // let cammem = Ident::new_private(Atom::new(format!("{}$cammem",&self.cfg.name)), node.span);
