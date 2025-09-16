@@ -1,5 +1,5 @@
 [workspace]
-members=["portal-solutions-rewd-core"]
+members=["crates/portal-solutions-rewd-core"]
 resolver="3"
 
 [workspace.dependencies]
