@@ -3,7 +3,6 @@ use std::{
     mem::{replace, take},
     sync::Arc,
 };
-
 use swc_atoms::Atom;
 use swc_common::{Mark, Span, Spanned, SyntaxContext};
 use swc_ecma_ast::{
@@ -20,7 +19,6 @@ pub struct CommonConfig<'a> {
     pub name: Atom,
     pub rename: Arc<dyn Fn(&str) -> Option<Atom> + 'a>,
 }
-
 pub struct FRewrite<'a> {
     pub core: Expr,
     pub cfg: CommonConfig<'a>,
