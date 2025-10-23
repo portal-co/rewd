@@ -504,12 +504,6 @@ impl VisitMut for CoreRewrite<'_> {
                 Box::new(Expr::Assign(AssignExpr {
                     span: node.span,
                     op: AssignOp::Assign,
-                    left: camobj.clone().into(),
-                    right: take(&mut node.obj),
-                })),
-                Box::new(Expr::Assign(AssignExpr {
-                    span: node.span,
-                    op: AssignOp::Assign,
                     left: cammem.clone().into(),
                     right: Box::new(Expr::Call(CallExpr {
                         span: node.span,
@@ -525,7 +519,12 @@ impl VisitMut for CoreRewrite<'_> {
                         args: [
                             ExprOrSpread {
                                 spread: None,
-                                expr: camobj.clone().into(),
+                                expr: Box::new(Expr::Assign(AssignExpr {
+                                    span: node.span,
+                                    op: AssignOp::Assign,
+                                    left: camobj.clone().into(),
+                                    right: take(&mut node.obj),
+                                })),
                             },
                             ExprOrSpread {
                                 expr: match take(&mut node.prop) {
