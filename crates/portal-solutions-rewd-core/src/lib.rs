@@ -6,7 +6,7 @@ use std::{
 use swc_atoms::Atom;
 use swc_common::{Mark, Span, Spanned, SyntaxContext};
 use swc_ecma_ast::{
-    ArrayLit, AssignExpr, AssignOp, BinExpr, BinaryOp, CallExpr, Class, ClassMember,
+    ArrayLit, ArrowExpr, AssignExpr, AssignOp, BinExpr, BinaryOp, CallExpr, Class, ClassMember,
     ComputedPropName, Decl, ExportDecl, Expr, ExprOrSpread, ExprStmt, Id, Ident, IdentName,
     KeyValueProp, Lit, MemberExpr, MemberProp, MethodKind, ModuleDecl, ModuleItem, Number,
     PrivateName, PrivateProp, Prop, PropName, PropOrSpread, SeqExpr, Stmt, Str, ThisExpr, VarDecl,
@@ -493,61 +493,98 @@ impl VisitMut for CoreRewrite<'_> {
         //     return;
         // }
         let camobj = Ident::new_private(Atom::new(format!("{}$camobj", &self.cfg.name)), node.span);
+        let cammem = Ident::new_private(Atom::new(format!("{}$cammem", &self.cfg.name)), node.span);
+        let camkey = Ident::new_private(Atom::new(format!("{}$camkey", &self.cfg.name)), node.span);
         self.decls.insert(camobj.to_id());
+        self.decls.insert(cammem.to_id());
         // let cammem = Ident::new_private(Atom::new(format!("{}$cammem",&self.cfg.name)), node.span);
-        node.obj = Box::new(Expr::Assign(AssignExpr {
+        node.obj = Box::new(Expr::Seq(SeqExpr {
             span: node.span,
-            op: AssignOp::Assign,
-            left: camobj.clone().into(),
-            right: take(&mut node.obj),
+            exprs: [
+                Box::new(Expr::Assign(AssignExpr {
+                    span: node.span,
+                    op: AssignOp::Assign,
+                    left: camobj.clone().into(),
+                    right: take(&mut node.obj),
+                })),
+                Box::new(Expr::Assign(AssignExpr {
+                    span: node.span,
+                    op: AssignOp::Assign,
+                    left: cammem.clone().into(),
+                    right: Box::new(Expr::Call(CallExpr {
+                        span: node.span,
+                        ctxt: Default::default(),
+                        callee: swc_ecma_ast::Callee::Expr(Box::new(Expr::Member(MemberExpr {
+                            span: node.span,
+                            obj: Box::new(self.core.clone()),
+                            prop: swc_ecma_ast::MemberProp::Ident(IdentName {
+                                span: node.span,
+                                sym: Atom::new("$member"),
+                            }),
+                        }))),
+                        args: [
+                            ExprOrSpread {
+                                spread: None,
+                                expr: camobj.clone().into(),
+                            },
+                            ExprOrSpread {
+                                expr: match take(&mut node.prop) {
+                                    swc_ecma_ast::MemberProp::Ident(ident_name) => {
+                                        Box::new(Expr::Lit(Lit::Str(Str {
+                                            span: ident_name.span,
+                                            value: ident_name.sym,
+                                            raw: None,
+                                        })))
+                                    }
+                                    swc_ecma_ast::MemberProp::PrivateName(private_name) => todo!(),
+                                    swc_ecma_ast::MemberProp::Computed(computed_prop_name) => {
+                                        computed_prop_name.expr
+                                    }
+                                },
+                                spread: None,
+                            },
+                            ExprOrSpread {
+                                spread: None,
+                                expr: Box::new(Expr::Lit(Lit::Str(Str {
+                                    span: node.span,
+                                    value: Atom::new(&*self.cfg.name),
+                                    raw: None,
+                                }))),
+                            },
+                            ExprOrSpread {
+                                spread: None,
+                                expr: Box::new(Expr::Arrow(ArrowExpr {
+                                    span: node.span,
+                                    ctxt: Default::default(),
+                                    params: [camkey.clone().into()].into_iter().collect(),
+                                    is_async: false,
+                                    is_generator: false,
+                                    type_params: None,
+                                    return_type: None,
+                                    body: Box::new(swc_ecma_ast::BlockStmtOrExpr::Expr(Box::new(
+                                        Expr::Assign(AssignExpr {
+                                            span: node.span,
+                                            op: AssignOp::Assign,
+                                            left: camobj.clone().into(),
+                                            right: camkey.into(),
+                                        }),
+                                    ))),
+                                })),
+                            },
+                        ]
+                        .into_iter()
+                        .collect(),
+                        type_args: None,
+                    })),
+                })),
+                camobj.into(),
+            ]
+            .into_iter()
+            .collect(),
         }));
         node.prop = swc_ecma_ast::MemberProp::Computed(ComputedPropName {
             span: node.span,
-            expr: Box::new(Expr::Call(CallExpr {
-                span: node.span,
-                ctxt: Default::default(),
-                callee: swc_ecma_ast::Callee::Expr(Box::new(Expr::Member(MemberExpr {
-                    span: node.span,
-                    obj: Box::new(self.core.clone()),
-                    prop: swc_ecma_ast::MemberProp::Ident(IdentName {
-                        span: node.span,
-                        sym: Atom::new("$member"),
-                    }),
-                }))),
-                args: [
-                    ExprOrSpread {
-                        spread: None,
-                        expr: camobj.into(),
-                    },
-                    ExprOrSpread {
-                        expr: match take(&mut node.prop) {
-                            swc_ecma_ast::MemberProp::Ident(ident_name) => {
-                                Box::new(Expr::Lit(Lit::Str(Str {
-                                    span: ident_name.span,
-                                    value: ident_name.sym,
-                                    raw: None,
-                                })))
-                            }
-                            swc_ecma_ast::MemberProp::PrivateName(private_name) => todo!(),
-                            swc_ecma_ast::MemberProp::Computed(computed_prop_name) => {
-                                computed_prop_name.expr
-                            }
-                        },
-                        spread: None,
-                    },
-                    ExprOrSpread {
-                        spread: None,
-                        expr: Box::new(Expr::Lit(Lit::Str(Str {
-                            span: node.span,
-                            value: Atom::new(&*self.cfg.name),
-                            raw: None,
-                        }))),
-                    },
-                ]
-                .into_iter()
-                .collect(),
-                type_args: None,
-            })),
+            expr: cammem.into(),
         })
     }
     fn visit_mut_prop(&mut self, node: &mut Prop) {
@@ -572,6 +609,8 @@ impl VisitMut for CoreRewrite<'_> {
                     Ident::new_private(Atom::new(format!("{}$camobj", &self.cfg.name)), span);
                 let cammem =
                     Ident::new_private(Atom::new(format!("{}$cammem", &self.cfg.name)), span);
+                let camkey =
+                    Ident::new_private(Atom::new(format!("{}$camkey", &self.cfg.name)), span);
                 self.decls.insert(camobj.to_id());
                 self.decls.insert(cammem.to_id());
                 Expr::Seq(SeqExpr {
@@ -620,6 +659,26 @@ impl VisitMut for CoreRewrite<'_> {
                                             value: Atom::new(&*self.cfg.name),
                                             raw: None,
                                         }))),
+                                    },
+                                    ExprOrSpread {
+                                        spread: None,
+                                        expr: Box::new(Expr::Arrow(ArrowExpr {
+                                            span,
+                                            ctxt: Default::default(),
+                                            params: [camkey.clone().into()].into_iter().collect(),
+                                            is_async: false,
+                                            is_generator: false,
+                                            type_params: None,
+                                            return_type: None,
+                                            body: Box::new(swc_ecma_ast::BlockStmtOrExpr::Expr(
+                                                Box::new(Expr::Assign(AssignExpr {
+                                                    span,
+                                                    op: AssignOp::Assign,
+                                                    left: camobj.clone().into(),
+                                                    right: camkey.into(),
+                                                })),
+                                            )),
+                                        })),
                                     },
                                 ]
                                 .into_iter()
