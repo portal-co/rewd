@@ -2,6 +2,10 @@
 members=["crates/portal-solutions-rewd-core"]
 resolver="3"
 
+[workspace.package]
+license = "MPL-2.0"
+description = "JS rewriter"
+
 [workspace.dependencies]
 swc_atoms = "^7.0.0"
 swc_common = "^14.0.0"
