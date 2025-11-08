@@ -3,7 +3,7 @@ use std::{
     mem::{replace, take},
     sync::Arc,
 };
-use swc_atoms::Atom;
+use swc_atoms::{Atom, Wtf8Atom};
 use swc_common::{Mark, Span, Spanned, SyntaxContext};
 use swc_ecma_ast::{
     ArrayLit, ArrowExpr, AssignExpr, AssignOp, BinExpr, BinaryOp, CallExpr, Class, ClassMember,
@@ -82,7 +82,7 @@ impl FRewrite<'_> {
                     expr: Box::new(match prop {
                         PropName::Ident(ident_name) => Expr::Lit(Lit::Str(Str {
                             span: ident_name.span,
-                            value: ident_name.sym,
+                            value: ident_name.sym.into(),
                             raw: None,
                         })),
                         PropName::Str(s) => Expr::Lit(Lit::Str(s)),
@@ -473,7 +473,7 @@ impl VisitMut for CoreRewrite<'_> {
                     spread: None,
                     expr: Box::new(Expr::Lit(Lit::Str(Str {
                         span: node.span,
-                        value: Atom::new(&*self.cfg.name),
+                        value: Wtf8Atom::new(&*self.cfg.name),
                         raw: None,
                     }))),
                 },
@@ -531,7 +531,7 @@ impl VisitMut for CoreRewrite<'_> {
                                     swc_ecma_ast::MemberProp::Ident(ident_name) => {
                                         Box::new(Expr::Lit(Lit::Str(Str {
                                             span: ident_name.span,
-                                            value: ident_name.sym,
+                                            value: ident_name.sym.into(),
                                             raw: None,
                                         })))
                                     }
@@ -546,7 +546,7 @@ impl VisitMut for CoreRewrite<'_> {
                                 spread: None,
                                 expr: Box::new(Expr::Lit(Lit::Str(Str {
                                     span: node.span,
-                                    value: Atom::new(&*self.cfg.name),
+                                    value: Wtf8Atom::new(&*self.cfg.name),
                                     raw: None,
                                 }))),
                             },
@@ -655,7 +655,7 @@ impl VisitMut for CoreRewrite<'_> {
                                         spread: None,
                                         expr: Box::new(Expr::Lit(Lit::Str(Str {
                                             span: span,
-                                            value: Atom::new(&*self.cfg.name),
+                                            value: Wtf8Atom::new(&*self.cfg.name),
                                             raw: None,
                                         }))),
                                     },
