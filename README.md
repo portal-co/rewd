@@ -1,13 +1,14 @@
-# @portal-solutions/rewd
+# rewd
 
 ## Description
-Project rewd
+"JS rewriter" (`rewd`). A tool for rewriting JavaScript code using SWC.
 
 ## Goals
-- [ ] Add project goals
+- [ ] Rewrite JS/TS code
+- [ ] Apply transformations via SWC
 
 ## Progress
-- [ ] Initial setup
+- [ ] Workspace setup with `rewd-core`
 
 ---
 *AI assisted*
